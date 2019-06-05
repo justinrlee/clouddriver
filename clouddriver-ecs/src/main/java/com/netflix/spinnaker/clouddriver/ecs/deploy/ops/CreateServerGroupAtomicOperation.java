@@ -158,7 +158,6 @@ public class CreateServerGroupAtomicOperation
             .withMemoryReservation(description.getReservedMemory())
             .withImage(description.getDockerImageAddress());
 
-    
     final Collection<String> containerCommand = description.getCommand();
     if (containerCommand != null) {
       containerDefinition.setCommand(containerCommand);
