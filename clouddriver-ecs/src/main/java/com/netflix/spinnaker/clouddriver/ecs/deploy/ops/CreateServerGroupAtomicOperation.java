@@ -158,6 +158,12 @@ public class CreateServerGroupAtomicOperation
             .withMemoryReservation(description.getReservedMemory())
             .withImage(description.getDockerImageAddress());
 
+    
+    final Collection<String> containerCommand = description.getCommand();
+    if (containerCommand != null) {
+      containerDefinition.setCommand(containerCommand);
+    }
+
     Collection<PortMapping> portMappings = new LinkedList<>();
 
     if (description.getContainerPort() != null) {
