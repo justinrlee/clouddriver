@@ -16,10 +16,10 @@
 
 package com.netflix.spinnaker.clouddriver.ecs.deploy.description;
 
+import com.amazonaws.services.ecs.model.MountPoint;
 import com.amazonaws.services.ecs.model.PlacementConstraint;
 import com.amazonaws.services.ecs.model.PlacementStrategy;
 import com.amazonaws.services.ecs.model.Volume;
-import com.amazonaws.services.ecs.model.MountPoint;
 import com.netflix.spinnaker.clouddriver.model.ServerGroup;
 import java.util.List;
 import java.util.Map;
