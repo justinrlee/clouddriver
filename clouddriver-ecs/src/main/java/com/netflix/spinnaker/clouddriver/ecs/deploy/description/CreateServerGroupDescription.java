@@ -40,7 +40,7 @@ public class CreateServerGroupDescription extends AbstractECSDescription {
 
   Map<String, String> environmentVariables;
   Map<String, String> tags;
-  
+
   List<String> command;
 
   String dockerImageAddress;
