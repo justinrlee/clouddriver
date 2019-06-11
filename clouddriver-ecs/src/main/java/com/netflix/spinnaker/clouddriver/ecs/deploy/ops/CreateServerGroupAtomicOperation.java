@@ -61,6 +61,9 @@ public class CreateServerGroupAtomicOperation
   protected static final String DOCKER_LABEL_KEY_STACK = "spinnaker.stack";
   protected static final String DOCKER_LABEL_KEY_DETAIL = "spinnaker.detail";
 
+  protected static final String SCHEDULING_STRATEGY_DAEMON = "DAEMON";
+  protected static final String SCHEDULING_STRATEGY_REPLICA = "REPLICA";
+
   @Autowired EcsCloudMetricService ecsCloudMetricService;
   @Autowired IamPolicyReader iamPolicyReader;
 
@@ -101,21 +104,23 @@ public class CreateServerGroupAtomicOperation
     Service service =
         createService(ecs, taskDefinition, ecsServiceRole, newServerGroupName, sourceService);
 
-    String resourceId = registerAutoScalingGroup(credentials, service, sourceTarget);
+    if (SCHEDULING_STRATEGY_REPLICA.equals(description.getSchedulingStrategy())) {
+      String resourceId = registerAutoScalingGroup(credentials, service, sourceTarget);
 
-    if (description.isCopySourceScalingPoliciesAndActions() && sourceTarget != null) {
-      updateTaskStatus("Copying scaling policies...");
-      ecsCloudMetricService.copyScalingPolicies(
-          description.getCredentialAccount(),
-          getRegion(),
-          service.getServiceName(),
-          resourceId,
-          description.getSource().getAccount(),
-          description.getSource().getRegion(),
-          description.getSource().getAsgName(),
-          sourceTarget.getResourceId(),
-          description.getEcsClusterName());
-      updateTaskStatus("Done copying scaling policies...");
+      if (description.isCopySourceScalingPoliciesAndActions() && sourceTarget != null) {
+        updateTaskStatus("Copying scaling policies...");
+        ecsCloudMetricService.copyScalingPolicies(
+            description.getCredentialAccount(),
+            getRegion(),
+            service.getServiceName(),
+            resourceId,
+            description.getSource().getAccount(),
+            description.getSource().getRegion(),
+            description.getSource().getAsgName(),
+            sourceTarget.getResourceId(),
+            description.getEcsClusterName());
+        updateTaskStatus("Done copying scaling policies...");
+      }
     }
 
     return makeDeploymentResult(service);
@@ -342,19 +347,25 @@ public class CreateServerGroupAtomicOperation
     }
 
     DeploymentConfiguration deploymentConfiguration =
-        new DeploymentConfiguration().withMinimumHealthyPercent(100).withMaximumPercent(200);
+        SCHEDULING_STRATEGY_REPLICA.equals(description.getSchedulingStrategy())
+            ? new DeploymentConfiguration().withMinimumHealthyPercent(100).withMaximumPercent(200)
+            : new DeploymentConfiguration().withMinimumHealthyPercent(0).withMaximumPercent(100);
 
     CreateServiceRequest request =
         new CreateServiceRequest()
             .withServiceName(newServerGroupName)
-            .withDesiredCount(desiredCount)
             .withCluster(description.getEcsClusterName())
             .withLoadBalancers(loadBalancers)
             .withTaskDefinition(taskDefinitionArn)
             .withPlacementConstraints(description.getPlacementConstraints())
-            .withPlacementStrategy(description.getPlacementStrategySequence())
             .withServiceRegistries(serviceRegistries)
+            .withSchedulingStrategy(description.getSchedulingStrategy())
             .withDeploymentConfiguration(deploymentConfiguration);
+
+    if (SCHEDULING_STRATEGY_REPLICA.equals(description.getSchedulingStrategy())) {
+      request.setDesiredCount(desiredCount);
+      request.setPlacementStrategy(description.getPlacementStrategySequence());
+    }
 
     if (description.getTags() != null && !description.getTags().isEmpty()) {
       Collection<Tag> taskDefTags = new LinkedList<>();
