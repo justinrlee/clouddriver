@@ -72,6 +72,8 @@ public class CreateServerGroupDescription extends AbstractECSDescription {
   Map<String, String> logOptions;
   Map<String, String> dockerLabels;
 
+  String schedulingStrategy = "REPLICA";
+
   List<ServiceDiscoveryAssociation> serviceDiscoveryAssociations;
 
   @Override
