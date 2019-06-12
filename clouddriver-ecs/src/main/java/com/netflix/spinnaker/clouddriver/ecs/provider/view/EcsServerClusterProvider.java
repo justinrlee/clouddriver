@@ -307,9 +307,9 @@ public class EcsServerClusterProvider implements ClusterProvider<EcsServerCluste
     String scalableTargetId = "service/" + ecsCluster + "/" + serviceName;
     String scalableTargetKey = Keys.getScalableTargetKey(account, region, scalableTargetId);
     ScalableTarget scalableTarget = scalableTargetCacheClient.get(scalableTargetKey);
-    if (scalableTarget == null) {
-      return null;
-    }
+    // if (scalableTarget == null) {
+    //   return null;
+    // }
 
     ServerGroup.Capacity capacity = buildServerGroupCapacity(desiredCount, scalableTarget);
 
@@ -371,11 +371,13 @@ public class EcsServerClusterProvider implements ClusterProvider<EcsServerCluste
             .setSecurityGroups(securityGroups)
             .setMetricAlarms(metricAlarmNames);
 
-    EcsServerGroup.AutoScalingGroup asg =
-        new EcsServerGroup.AutoScalingGroup()
-            .setDesiredCapacity(scalableTarget.getMaxCapacity())
-            .setMaxSize(scalableTarget.getMaxCapacity())
-            .setMinSize(scalableTarget.getMinCapacity());
+    if (scalableTarget != null) {
+      EcsServerGroup.AutoScalingGroup asg =
+          new EcsServerGroup.AutoScalingGroup()
+              .setDesiredCapacity(scalableTarget.getMaxCapacity())
+              .setMaxSize(scalableTarget.getMaxCapacity())
+              .setMinSize(scalableTarget.getMinCapacity());
+    }
 
     // TODO: Update Deck to handle an asg. Current Deck implementation uses a EC2 AutoScaling Group
     // serverGroup.setAsg(asg);
