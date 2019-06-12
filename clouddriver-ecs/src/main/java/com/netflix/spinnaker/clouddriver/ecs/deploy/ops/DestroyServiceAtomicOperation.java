@@ -20,6 +20,7 @@ import com.amazonaws.services.ecs.AmazonECS;
 import com.amazonaws.services.ecs.model.DeleteServiceRequest;
 import com.amazonaws.services.ecs.model.DeleteServiceResult;
 import com.amazonaws.services.ecs.model.DeregisterTaskDefinitionRequest;
+import com.amazonaws.services.ecs.model.InvalidParameterException;
 import com.amazonaws.services.ecs.model.UpdateServiceRequest;
 import com.netflix.spinnaker.clouddriver.ecs.deploy.description.ModifyServiceDescription;
 import com.netflix.spinnaker.clouddriver.ecs.services.EcsCloudMetricService;
@@ -39,6 +40,9 @@ public class DestroyServiceAtomicOperation
     updateTaskStatus("Initializing Destroy Amazon ECS Server Group Operation...");
     AmazonECS ecs = getAmazonEcsClient();
 
+    String service = description.getServerGroupName();
+    String account = description.getCredentialAccount();
+
     String ecsClusterName =
         containerInformationService.getClusterName(
             description.getServerGroupName(), description.getAccount(), description.getRegion());
@@ -53,8 +57,17 @@ public class DestroyServiceAtomicOperation
     updateServiceRequest.setDesiredCount(0);
     updateServiceRequest.setCluster(ecsClusterName);
 
-    updateTaskStatus("Scaling " + description.getServerGroupName() + " server group down to 0.");
-    ecs.updateService(updateServiceRequest);
+    updateTaskStatus("Scaling " + service + " server group down to 0.");
+    try {
+      ecs.updateService(updateServiceRequest);
+      updateTaskStatus(String.format("Server group %s disabled.", service));
+    } catch (InvalidParameterException e) {
+      updateTaskStatus(
+          String.format(
+              "Couldn't scale group %s for %s to 0 instances; probably in DAEMON mode.",
+              service, account));
+    }
+    // ecs.updateService(updateServiceRequest);
 
     DeleteServiceRequest deleteServiceRequest = new DeleteServiceRequest();
     deleteServiceRequest.setService(description.getServerGroupName());

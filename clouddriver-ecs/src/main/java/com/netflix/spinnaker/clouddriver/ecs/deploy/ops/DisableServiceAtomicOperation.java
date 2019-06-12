@@ -17,6 +17,7 @@
 package com.netflix.spinnaker.clouddriver.ecs.deploy.ops;
 
 import com.amazonaws.services.ecs.AmazonECS;
+import com.amazonaws.services.ecs.model.InvalidParameterException;
 import com.amazonaws.services.ecs.model.UpdateServiceRequest;
 import com.netflix.spinnaker.clouddriver.ecs.deploy.description.ModifyServiceDescription;
 import java.util.List;
@@ -45,7 +46,14 @@ public class DisableServiceAtomicOperation
     updateTaskStatus(String.format("Disabling %s server group for %s.", service, account));
     UpdateServiceRequest request =
         new UpdateServiceRequest().withCluster(cluster).withService(service).withDesiredCount(0);
-    ecs.updateService(request);
-    updateTaskStatus(String.format("Server group %s disabled for %s.", service, account));
+    try {
+      ecs.updateService(request);
+      updateTaskStatus(String.format("Server group %s disabled for %s.", service, account));
+    } catch (InvalidParameterException e) {
+      updateTaskStatus(
+          String.format(
+              "Couldn't scale group %s for %s to 0 instances; probably in DAEMON mode.",
+              service, account));
+    }
   }
 }
